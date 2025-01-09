@@ -31,7 +31,13 @@ jobs:
 
       - name: Create and Push Tag
         shell: bash
+        env:
+          TAG: ${{ env.tag }}
         run: |
+          if [ -z "$TAG" ]; then
+            echo "Error: TAG variable is not set."
+            exit 1
+          fi
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag "$TAG"
