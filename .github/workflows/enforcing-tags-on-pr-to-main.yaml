@@ -1,7 +1,7 @@
 name: Enforce Tag on Pull Request to Main
 
 on:
-  pull_request:
+  push:
     branches:
       - main
   workflow_dispatch:
