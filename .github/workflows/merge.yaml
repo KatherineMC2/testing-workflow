@@ -24,15 +24,15 @@ jobs:
       - name: Obtener el PR más reciente fusionado
         id: get_pr
         run: |
-          PR=$(gh pr list --state merged --base main --sort updated --limit 1 --json title,number,mergedAt,url --jq '.[0]')
-          echo "Título del PR: $(echo $PR | jq -r '.title')"
-          echo "Número del PR: $(echo $PR | jq -r '.number')"
-          echo "Fecha de fusión: $(echo $PR | jq -r '.mergedAt')"
-          echo "URL del PR: $(echo $PR | jq -r '.url')"
-          echo "pr_title=$(echo $PR | jq -r '.title')" >> $GITHUB_ENV
-          echo "pr_number=$(echo $PR | jq -r '.number')" >> $GITHUB_ENV
-          echo "pr_merged_at=$(echo $PR | jq -r '.mergedAt')" >> $GITHUB_ENV
-          echo "pr_url=$(echo $PR | jq -r '.url')" >> $GITHUB_ENV
+           PR=$(gh pr list --state merged --base main --limit 30 --json title,number,mergedAt,url | jq 'sort_by(.mergedAt) | reverse | .[0]')
+            echo "Título del PR: $(echo $PR | jq -r '.title')"
+            echo "Número del PR: $(echo $PR | jq -r '.number')"
+            echo "Fecha de fusión: $(echo $PR | jq -r '.mergedAt')"
+            echo "URL del PR: $(echo $PR | jq -r '.url')"
+            echo "pr_title=$(echo $PR | jq -r '.title')" >> $GITHUB_ENV
+            echo "pr_number=$(echo $PR | jq -r '.number')" >> $GITHUB_ENV
+            echo "pr_merged_at=$(echo $PR | jq -r '.mergedAt')" >> $GITHUB_ENV
+            echo "pr_url=$(echo $PR | jq -r '.url')" >> $GITHUB_ENV
 
       # Step 4: Mostrar detalles del PR
       - name: Mostrar detalles del PR

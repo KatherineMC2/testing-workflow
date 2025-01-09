@@ -47,3 +47,4 @@ jobs:
                 git tag "$TAG"
                 git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} "$TAG"
             fi
+
