@@ -1,73 +1,38 @@
 name: Enforce Tag on Pull Request to Main
 
 on:
-  push:
+  pull_request:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Version tag (e.g., v1.0.0)'
-        required: true
-
-permissions:
-  contents: write
-  pull-requests: write
-
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   enforce-tag:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Clone the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Check if the PR already has a tag
       - name: Check for Tag in PR
-        id: check-tag
         shell: bash
         run: |
-          echo "Checking for a version tag in the PR title or description..."
-          PR_TITLE="${{ github.event.push.size|| '' }}"
-          PR_BODY="${{ github.event.push.body || '' }}"
-          
-          if echo "$PR_TITLE $PR_BODY" | grep -qE 'v[0-9]+\.[0-9]+\.[0-9]+'; then
-              echo "Tag found in PR."
-              TAG=$(echo "$PR_TITLE $PR_BODY" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
-              echo "TAG=$TAG" >> $GITHUB_ENV
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+          TAG_REGEX='v[0-9]+\.[0-9]+\.[0-9]+'
+
+          if echo "$PR_TITLE $PR_BODY" | grep -qE "$TAG_REGEX"; then
+              TAG=$(echo "$PR_TITLE $PR_BODY" | grep -oE "$TAG_REGEX" | head -n 1)
+              echo "Tag found: $TAG"
           else
-              echo "No valid tag found in the PR. You need to provide one using the workflow_dispatch."
-              echo "funciona o no"
-              echo "$PR_TITLE $PR_BODY" 
-
+              echo "No valid tag found in the PR."
               exit 1
           fi
 
-      # 3. Validate the tag format (if provided manually)
-      - name: Validate Tag Format
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        env:
-          TAG: ${{ github.event.inputs.tag }}
-        shell: bash
-        run: |
-          echo "Validating tag: $TAG"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Error: The tag must follow the format vX.Y.Z (e.g., v1.0.0)."
-              exit 1
-          fi
-          echo "TAG=$TAG" >> $GITHUB_ENV
-
-      # 4. Create and push the tag
       - name: Create and Push Tag
-        env:
-          TAG: ${{ env.TAG }}
         shell: bash
         run: |
           git config user.name "GitHub Actions"
-          git config user.email "ations@github.com"
+          git config user.email "actions@github.com"
+          TAG=$(echo "$PR_TITLE $PR_BODY" | grep -oE "$TAG_REGEX" | head -n 1)
           git tag "$TAG"
           git push origin "$TAG"
