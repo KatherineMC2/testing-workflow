@@ -34,13 +34,15 @@ jobs:
           echo "Checking for a version tag in the PR title or description..."
           PR_TITLE="${{ github.event.pull_request.title || '' }}"
           PR_BODY="${{ github.event.pull_request.body || '' }}"
+          
           if echo "$PR_TITLE $PR_BODY" | grep -qE 'v[0-9]+\\.[0-9]+\\.[0-9]+'; then
-            echo "Tag found in PR."
-            TAG=$(echo "$PR_TITLE $PR_BODY" | grep -oE 'v[0-9]+\\.[0-9]+\\.[0-9]+')
-            echo "TAG=$TAG" >> $GITHUB_ENV
+              echo "Tag found in PR."
+              TAG=$(echo "$PR_TITLE $PR_BODY" | grep -oE 'v[0-9]+\\.[0-9]+\\.[0-9]+')
+              echo "TAG=$TAG" >> $GITHUB_ENV
           else
-            echo "No valid tag found in the PR. You need to provide one using the workflow_dispatch."
-            exit 1
+              echo "No valid tag found in the PR. You need to provide one using the workflow_dispatch."
+              exit 1
+          fi
 
       # 3. Validate the tag format (if provided manually)
       - name: Validate Tag Format
@@ -51,8 +53,8 @@ jobs:
         run: |
           echo "Validating tag: $TAG"
           if [[ ! "$TAG" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
-            echo "Error: The tag must follow the format vX.Y.Z (e.g., v1.0.0)."
-            exit 1
+              echo "Error: The tag must follow the format vX.Y.Z (e.g., v1.0.0)."
+              exit 1
           fi
           echo "TAG=$TAG" >> $GITHUB_ENV
 
