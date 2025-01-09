@@ -32,8 +32,8 @@ jobs:
         shell: bash
         run: |
           echo "Checking for a version tag in the PR title or description..."
-          PR_TITLE="${{ github.event.pull_request.title || '' }}"
-          PR_BODY="${{ github.event.pull_request.body || '' }}"
+          PR_TITLE="${{ github.event.push || '' }}"
+          PR_BODY="${{ github.event.push.body || '' }}"
           
           if echo "$PR_TITLE $PR_BODY" | grep -qE 'v[0-9]+\.[0-9]+\.[0-9]+'; then
               echo "Tag found in PR."
