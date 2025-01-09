@@ -41,6 +41,7 @@ jobs:
               echo "TAG=$TAG" >> $GITHUB_ENV
           else
               echo "No valid tag found in the PR. You need to provide one using the workflow_dispatch."
+              echo "$PR_TITLE $PR_BODY" 
               exit 1
           fi
 
