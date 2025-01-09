@@ -1,0 +1,36 @@
+
+name: Get Pull Request Details
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+jobs:
+  get-pr-details:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Extract Pull Request Details
+      - name: Get Pull Request Details
+        id: pr_details
+        run: |
+          echo "PR Title: ${{ github.event.pull_request.title }}"
+          echo "PR Number: ${{ github.event.pull_request.number }}"
+          echo "PR URL: ${{ github.event.pull_request.html_url }}"
+          echo "PR Author: ${{ github.event.pull_request.user.login }}"
+          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_ENV
+          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          echo "pr_url=${{ github.event.pull_request.html_url }}" >> $GITHUB_ENV
+          echo "pr_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
+
+      # Step 2: Use Pull Request Details
+      - name: Use Pull Request Details
+        run: |
+          echo "Using PR Title: ${{ env.pr_title }}"
+          echo "Using PR Number: ${{ env.pr_number }}"
+          echo "Using PR URL: ${{ env.pr_url }}"
+          echo "Using PR Author: ${{ env.pr_author }}"
