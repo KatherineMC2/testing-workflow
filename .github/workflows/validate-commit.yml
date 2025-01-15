@@ -21,7 +21,8 @@ jobs:
         id: validate_tag
         run: |
           TAG_REGEX='v[0-9]+\.[0-9]+\.[0-9]+'
-          LAST_COMMIT_MSG=$(git log --format=%B -n 1 HEAD^)
+          LAST_COMMIT_SHA=${{ github.event.pull_request.head.sha }}
+          LAST_COMMIT_MSG=$(git log --format=%B -n 1 "$LAST_COMMIT_SHA")
           echo "Last commit message: $LAST_COMMIT_MSG"
 
           if echo "$LAST_COMMIT_MSG" | grep -qE "$TAG_REGEX"; then
@@ -44,4 +45,5 @@ jobs:
           echo "Creating tag: $TAG"
           git tag "$TAG"
           git push origin "$TAG"
+
 
