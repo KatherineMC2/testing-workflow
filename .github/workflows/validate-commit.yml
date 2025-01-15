@@ -1,0 +1,26 @@
+name: Validate Last Commit on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-last-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout el código del branch del PR
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Validar si el último commit tiene un tag válido
+      - name: Check for version tag in last commit
+        run: |
+          TAG_REGEX='v[0-9]+\.[0-9]+\.[0-9]+'
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Last commit message: $LAST_COMMIT_MSG"
+          if ! echo "$LAST_COMMIT_MSG" | grep -qE "$TAG_REGEX"; then
+            echo "❌ Error: The last commit must include a valid version tag (e.g., v1.0.0)."
+            exit 1
+          fi
