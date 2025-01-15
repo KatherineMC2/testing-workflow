@@ -3,7 +3,7 @@ name: Enforce Tag on Commit Messages
 on:
   pull_request:
     branches:
-      - main
+      - testing
 
 jobs:
   check-tag:
