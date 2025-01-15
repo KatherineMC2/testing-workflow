@@ -3,7 +3,7 @@ name: Enforce Tag on Push to Main
 on:
   push:
     branches:
-      - main  # Solo se ejecutará cuando haya un push en la rama main
+      - testing # Solo se ejecutará cuando haya un push en la rama main
 
 jobs:
   create-tag:
