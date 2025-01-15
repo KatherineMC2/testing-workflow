@@ -1,4 +1,4 @@
-name: Validate Last Commit on PR
+name: Validate Last Commit and Create Tag
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  validate-last-commit:
+  validate-and-tag:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,11 +16,29 @@ jobs:
 
       # 2. Validar si el último commit tiene un tag válido
       - name: Check for version tag in last commit
+        id: validate_tag
         run: |
           TAG_REGEX='v[0-9]+\.[0-9]+\.[0-9]+'
           LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
           echo "Last commit message: $LAST_COMMIT_MSG"
-          if ! echo "$LAST_COMMIT_MSG" | grep -qE "$TAG_REGEX"; then
+
+          if echo "$LAST_COMMIT_MSG" | grep -qE "$TAG_REGEX"; then
+            TAG=$(echo "$LAST_COMMIT_MSG" | grep -oE "$TAG_REGEX" | head -n 1)
+            echo "Valid tag found: $TAG"
+            echo "tag=$TAG" >> $GITHUB_ENV
+          else
             echo "❌ Error: The last commit must include a valid version tag (e.g., v1.0.0)."
             exit 1
           fi
+
+      # 3. Crear y empujar la tag si es válida
+      - name: Create and Push Tag
+        if: success()
+        env:
+          TAG: ${{ env.tag }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          echo "Creating tag: $TAG"
+          git tag "$TAG"
+          git push origin "$TAG"
