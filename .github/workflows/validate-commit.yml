@@ -1,49 +1,88 @@
-name: Validate Last Commit and Create Tag
+name: Validate PR and Commit Messages
 
 on:
-  pull_request:
+  push:
     branches:
+      - develop
       - main
 
+  pull_request:
+    branches:
+      - develop
+      - main
+    types: [opened, synchronize, edited, reopened]
+
 jobs:
-  validate-and-tag:
+  validate-commits:
     runs-on: ubuntu-latest
+    name: Validate PR and Commit Messages
 
     steps:
-      # 1. Checkout el código del branch del PR
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Clona todo el historial del repositorio
+          fetch-depth: 0
 
-      # 2. Validar si el último commit tiene un tag válido
-      - name: Check for version tag in last commit
-        id: validate_tag
+      - name: Make validation script executable
+        run: chmod +x .hooks/validate-commit-msg.sh
+
+      - name: Get commits to validate (push or PR)
+        id: commits
         run: |
-          TAG_REGEX='v[0-9]+\.[0-9]+\.[0-9]+'
-          LAST_COMMIT_SHA=${{ github.event.pull_request.head.sha }}
-          LAST_COMMIT_MSG=$(git log --format=%B -n 1 "$LAST_COMMIT_SHA")
-          echo "Last commit message: $LAST_COMMIT_MSG"
-
-          if echo "$LAST_COMMIT_MSG" | grep -qE "$TAG_REGEX"; then
-            TAG=$(echo "$LAST_COMMIT_MSG" | grep -oE "$TAG_REGEX" | head -n 1)
-            echo "Valid tag found: $TAG"
-            echo "tag=$TAG" >> $GITHUB_ENV
+          echo "🔁 Detecting event type..."
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "📦 Pull request event"
+            git fetch origin ${{ github.event.pull_request.base.ref }}
+            git fetch origin ${{ github.event.pull_request.head.ref }}
+            COMMITS=$(git log --pretty=format:'%H' origin/${{ github.event.pull_request.base.ref }}..origin/${{ github.event.pull_request.head.ref }})
+            echo "${{ github.event.pull_request.title }}" > .hooks/.temp-pr-title
+            echo "PR_TITLE=true" >> $GITHUB_ENV
           else
-            echo "❌ Error: The last commit must include a valid version tag (e.g., v1.0.0)."
-            exit 1
+            echo "🚀 Push event"
+            git fetch origin
+            COMMITS=$(git log --pretty=format:'%H' ${{ github.event.before }}..${{ github.sha }})
+            echo "PR_TITLE=false" >> $GITHUB_ENV
+          fi
+          echo "$COMMITS" > commits.txt
+
+      - name: Validate commit messages (and PR title if exists)
+        run: |
+          ERROR_FOUND=0
+
+          if [ "$PR_TITLE" = "true" ]; then
+            echo "🔍 Validating Pull Request title..."
+            echo "📝 Title: $(cat .hooks/.temp-pr-title)"
+            if ! ./.hooks/validate-commit-msg.sh .hooks/.temp-pr-title; then
+              echo "::error title::Pull Request title failed validation"
+              ERROR_FOUND=1
+            else
+              echo "✅ Pull Request title is valid"
+            fi
+          else
+            echo "ℹ️ No PR title to validate (push event)"
           fi
 
-      # 3. Crear y empujar la tag si es válida
-      - name: Create and Push Tag
-        if: success()
-        env:
-          TAG: ${{ env.tag }}
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          echo "Creating tag: $TAG"
-          git tag "$TAG"
-          git push origin "$TAG"
+          echo "🔍 Validating commit messages..."
+          while read COMMIT; do
+            MESSAGE=$(git show -s --format=%B "$COMMIT")
 
+            if echo "$MESSAGE" | grep -qE "^Merge "; then
+              echo "⚠️ Skipping merge commit: $COMMIT"
+              continue
+            fi
 
+            echo "🔎 Validating commit: '$MESSAGE'"
+            echo "$MESSAGE" > .hooks/.temp-commit-msg
+
+            if ! ./.hooks/validate-commit-msg.sh .hooks/.temp-commit-msg; then
+              echo "::error file=.git/COMMIT_EDITMSG,line=1::Commit $COMMIT failed validation"
+              ERROR_FOUND=1
+            fi
+          done < commits.txt
+
+          if [ "$ERROR_FOUND" -ne 0 ]; then
+            echo "❌ One or more validations failed."
+            exit 1
+          else
+            echo "🎉 All validations passed"
+          fi
